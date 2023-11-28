@@ -1,2 +1,4 @@
 markdown-it-py[linkify,plugins]
 readability-lxml
+markdownify
+requests
