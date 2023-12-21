@@ -9,6 +9,50 @@ from mdit_py_plugins.tasklists import tasklists_plugin
 from mdit_py_plugins.field_list import fieldlist_plugin
 
 
+def _wikilinks_inline(state, silent: bool):
+    if state.src[state.pos] != "[" or state.src[state.pos] != "[":
+        return False
+    try:
+        end = state.src.index("]]", state.pos + 2)
+    except ValueError:
+        return False
+
+    text = state.src[state.pos + 2 : end]
+    if not text.strip():
+        return False
+
+    try:
+        index = text.index("|")
+        link = text[:index]
+        label = text[index + 1 :]
+    except ValueError:
+        link = text
+        label = link
+
+    if not silent:
+        token = state.push("wikilink", "wiki", 0)
+        token.content = label
+        token.attrSet("link", link)
+
+    state.pos = end + 2
+    return True
+
+
+def wikilinks_plugin(md):
+    md.inline.ruler.before(
+        "escape",
+        "wikilink",
+        _wikilinks_inline,
+    )
+
+    def render_wikilink(self, tokens, idx, options, env) -> str:
+        label = str(tokens[idx].content)
+        link = str(tokens[idx].attrGet("link"))
+        return f'<a class="wikilink" href="{link}">{label}</a>'
+
+    md.add_render_rule("wikilink", render_wikilink)
+
+
 def brx_markdown(html_support=True, newline_break=True):
     return (
         MarkdownIt("gfm-like", {"html": html_support, "breaks": newline_break})
@@ -17,6 +61,7 @@ def brx_markdown(html_support=True, newline_break=True):
         .use(footnote_plugin)
         .use(tasklists_plugin)
         .use(fieldlist_plugin)
+        .use(wikilinks_plugin)
     )
 
 
